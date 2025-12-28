@@ -1,0 +1,133 @@
+-- Services
+local Players = game:GetService("Players")
+
+local player = Players.LocalPlayer
+local TELEPORT_DISTANCE = 12
+-- Character helper
+local function getRoot()
+    local char = player.Character
+    if not char then return nil end
+    return char:FindFirstChild("HumanoidRootPart")
+end
+
+local function teleport(dir)
+    local root = getRoot()
+    if not root then return end
+    root.CFrame = root.CFrame + (root.CFrame.LookVector * TELEPORT_DISTANCE * dir)
+end
+
+-- GUI
+local gui = Instance.new("ScreenGui")
+gui.Name = "efcmonk"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 200, 0, 150) -- smaller
+frame.Position = UDim2.new(0.5, -100, 0.5, -75)
+frame.BackgroundColor3 = Color3.fromRGB(24, 24, 24)
+frame.BackgroundTransparency = 0.35 -- transparent
+frame.Parent = gui
+
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
+
+-- Outline
+local stroke = Instance.new("UIStroke")
+stroke.Color = Color3.fromRGB(80, 80, 80)
+stroke.Thickness = 1
+stroke.Transparency = 0.3
+stroke.Parent = frame
+
+-- Top bar
+local topBar = Instance.new("Frame")
+topBar.Size = UDim2.new(1, 0, 0, 32)
+topBar.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+topBar.BackgroundTransparency = 0.25
+topBar.Parent = frame
+Instance.new("UICorner", topBar).CornerRadius = UDim.new(0, 10)
+
+local fixCorner = Instance.new("Frame")
+fixCorner.Size = UDim2.new(1, 0, 0, 10)
+fixCorner.Position = UDim2.new(0, 0, 1, -10)
+fixCorner.BackgroundColor3 = topBar.BackgroundColor3
+fixCorner.BackgroundTransparency = topBar.BackgroundTransparency
+fixCorner.BorderSizePixel = 0
+fixCorner.Parent = topBar
+
+-- Title
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -16, 1, 0)
+title.Position = UDim2.new(0, 8, 0, 0)
+title.BackgroundTransparency = 1
+title.Text = "EfcMonk"
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.TextColor3 = Color3.fromRGB(235, 235, 235)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 14
+title.Parent = topBar
+
+-- Button creator
+local function makeButton(text, yPos, callback)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, -24, 0, 32)
+    btn.Position = UDim2.new(0, 12, 0, yPos)
+    btn.Text = text
+    btn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+    btn.BackgroundTransparency = 0.3
+    btn.TextColor3 = Color3.fromRGB(220, 220, 220)
+    btn.Font = Enum.Font.GothamSemibold
+    btn.TextSize = 14
+    btn.Parent = frame
+
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 7)
+
+    if callback then
+        btn.MouseButton1Click:Connect(callback)
+    end
+end
+
+-- Buttons
+makeButton("⬆ Forward", 40, function()
+    teleport(1)
+end)
+
+makeButton("⬇ Back", 76, function()
+    teleport(-1)
+end)
+
+makeButton("🌀 D-Sync", 112, nil) -- still does nothing
+
+-- Draggable (top bar only)
+local dragging = false
+local dragStart
+local startPos
+
+topBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+    or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = frame.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+topBar.InputChanged:Connect(function(input)
+    if dragging and (
+        input.UserInputType == Enum.UserInputType.MouseMovement
+        or input.UserInputType == Enum.UserInputType.Touch
+    ) then
+        local delta = input.Position - dragStart
+        frame.Position = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
+        )
+    end
+end)
